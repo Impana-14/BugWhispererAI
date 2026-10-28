@@ -2,26 +2,28 @@
 
 **An AI-powered debugging assistant built with Python, FastAPI, Google Gemini, and Pydantic.**
 
-BugWhisperer AI analyzes source code and error messages to identify potential bugs, explain root causes, and suggest corrected code. It uses AI tool calling to perform Python syntax checks and gather debugging hints, returning structured bug reports through a REST API.
+BugWhisperer AI is an AI-powered debugging assistant that analyzes source code and error messages to identify potential bugs, explain root causes, and suggest corrected code. It uses Gemini tool calling to perform Python syntax checks and gather debugging hints, returning structured bug reports through a REST API.
 
 ## Features
 
-- **AI-powered bug analysis:** Explains errors and suggests fixes using Google Gemini.
+- **AI-powered bug analysis:** Analyzes code and error messages using Google Gemini.
 - **Tool calling:** Uses Python tools to inspect syntax and identify common debugging clues.
-- **Structured output:** Validates bug reports using Pydantic models.
+- **Structured output:** Validates AI-generated bug reports using Pydantic models.
 - **Conversation memory:** Maintains recent context for follow-up debugging requests.
-- **REST API:** Exposes endpoints through FastAPI.
-- **API documentation:** Provides interactive Swagger documentation.
-- **Error handling:** Returns meaningful HTTP responses for provider errors and invalid reports.
+- **REST API:** Exposes debugging functionality through FastAPI endpoints.
+- **Interactive API documentation:** Provides Swagger UI for testing API requests.
+- **Error handling:** Returns meaningful HTTP responses for invalid requests and AI provider failures.
+- **Automated testing:** Includes 16 tests covering debugging tools, API endpoints, conversation memory, and schema validation.
 
 ## Tech Stack
 
-- Python 3.12
-- FastAPI
-- Google Gemini API (`google-genai`)
-- Pydantic
-- Uvicorn
-- pytest and HTTPX for testing
+- **Language:** Python 3.12
+- **Backend framework:** FastAPI
+- **AI model integration:** Google Gemini API (`google-genai`)
+- **Data validation:** Pydantic
+- **Server:** Uvicorn
+- **Testing:** pytest and HTTPX
+- **Version control:** Git and GitHub
 
 ## Project Structure
 
@@ -35,29 +37,45 @@ BugWhispererAI/
 │   ├── memory.py
 │   ├── schemas.py
 │   └── tools.py
-├── .env
+├── tests/
+│   ├── test_api.py
+│   ├── test_memory.py
+│   ├── test_schemas.py
+│   └── test_tools.py
 ├── .gitignore
 ├── README.md
 └── requirements.txt
 ```
 
+The `.env` file and `.venv` virtual environment are intentionally excluded from the repository.
+
 ## Getting Started
+
+### Prerequisites
+
+- Python 3.12 or a compatible Python version
+- Git
+- A Google Gemini API key from Google AI Studio
 
 ### 1. Clone the repository
 
 ```bash
-git clone YOUR_GITHUB_REPOSITORY_URL
+git clone https://github.com/Impana-14/BugWhispererAI.git
 cd BugWhispererAI
 ```
 
-Replace `YOUR_GITHUB_REPOSITORY_URL` with your repository URL.
-
 ### 2. Create and activate a virtual environment
 
-Windows PowerShell:
+On Windows PowerShell:
 
 ```powershell
 python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+If PowerShell blocks script activation, you can allow scripts for the current terminal session:
+
+```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
 .\.venv\Scripts\Activate.ps1
 ```
@@ -70,14 +88,18 @@ python -m pip install -r requirements.txt
 
 ### 4. Configure environment variables
 
-Create a `.env` file in the project root:
+Create a file named `.env` in the project root and add your own Gemini API key:
 
 ```dotenv
 GEMINI_API_KEY=your_google_ai_studio_api_key
 GEMINI_MODEL=gemini-3.6-flash
 ```
 
-Get an API key through Google AI Studio. Never commit your real API key to GitHub.
+Obtain an API key through [Google AI Studio](https://aistudio.google.com/).
+
+Use the model name configured for your Gemini API access. Model availability may vary by account and provider updates.
+
+**Security:** Never commit your real API key to GitHub or include it in screenshots, logs, or public documentation.
 
 ### 5. Start the API server
 
@@ -85,17 +107,26 @@ Get an API key through Google AI Studio. Never commit your real API key to GitHu
 python -m uvicorn app.main:app --reload
 ```
 
-The API will be available at:
+The server runs locally at `http://127.0.0.1:8000`.
 
-- API root: http://127.0.0.1:8000/
-- Health check: http://127.0.0.1:8000/api/health/
-- Swagger documentation: http://127.0.0.1:8000/docs
+Available URLs:
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /` | Welcome message |
+| `GET /api/health/` | API health check |
+| `POST /api/analyze/` | Analyze code and error messages |
+| `/docs` | Interactive Swagger API documentation |
+
+Open [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) to explore and test the endpoints.
 
 ## API Usage
 
 ### Analyze code
 
 **Endpoint:** `POST /api/analyze/`
+
+This endpoint accepts source code, an error message, and an optional conversation ID.
 
 Example request:
 
@@ -107,7 +138,7 @@ Example request:
 }
 ```
 
-Example response structure:
+Example response:
 
 ```json
 {
@@ -125,39 +156,83 @@ Example response structure:
 }
 ```
 
-The exact report content may vary because the diagnosis is generated by the AI model.
+The example illustrates the response structure. Actual diagnoses and wording may vary because the report is generated by an AI model.
+
+### Conversation memory
+
+The optional `conversation_id` allows a client to continue a debugging conversation. When a conversation ID is supplied, the application can use the stored conversation history as context for a follow-up request.
+
+The current implementation keeps recent messages in application memory. Conversation history is not persisted to a database and may be lost when the application restarts.
 
 ### Health check
 
 **Endpoint:** `GET /api/health/`
 
-Returns the API status, application name, and version.
+Returns the application's health status, name, and version.
+
+Example response:
+
+```json
+{
+  "status": "ok",
+  "app": "BugWhisperer AI",
+  "version": "1.0.0"
+}
+```
+
+## Automated Testing
+
+The project includes **16 automated tests** covering its core functionality.
+
+| Test file | Coverage |
+|---|---|
+| `tests/test_tools.py` | Python syntax checks, debugging hints, and code statistics |
+| `tests/test_api.py` | API endpoints, request validation, and configuration error handling |
+| `tests/test_memory.py` | Message storage, conversation isolation, history limits, and clearing memory |
+| `tests/test_schemas.py` | Valid bug reports and confidence-score validation |
+
+Run all tests from the project root:
+
+```powershell
+python -m pytest -v
+```
+
+The current test suite has passed all 16 tests locally. Run the command again after cloning or changing the project to verify your environment.
+
+These tests validate application behavior without requiring a live Gemini request for each test.
 
 ## Error Handling
 
-The API uses HTTP status codes to communicate failures, including:
+The API uses HTTP status codes to communicate failures.
 
-- `422` — Invalid request data.
-- `429` — Gemini request limit reached.
-- `502` — AI provider or response-processing failure.
-- `503` — Gemini temporarily unavailable or API key not configured.
+| Status code | Meaning |
+|---|---|
+| `200` | Request completed successfully |
+| `422` | Request data failed validation |
+| `429` | Gemini request limit reached |
+| `502` | AI provider request or response-processing failure |
+| `503` | Gemini temporarily unavailable or API key not configured |
 
-Gemini availability and request limits depend on the provider and account.
+Gemini availability, model access, and request limits depend on the provider and account.
 
 ## Future Improvements
 
-- Add automated unit and integration tests.
-- Support additional programming languages.
-- Add persistent conversation storage.
+- Add support for additional programming languages.
+- Add persistent conversation storage using a database.
 - Build a frontend for submitting code and viewing bug reports.
 - Improve retry handling for temporary AI provider failures.
+- Add continuous integration to run tests automatically on GitHub.
+- Expand test coverage for AI responses and tool-calling scenarios.
 
-## Security Notes
+## Security and Limitations
 
-- Keep API keys in environment variables.
-- Never commit `.env` or virtual environment files.
-- Treat AI-generated diagnoses as suggestions and validate fixes before using them in production.
+- API keys are stored in environment variables rather than committed to source control.
+- The `.env` file and virtual environment are excluded using `.gitignore`.
+- Submitted code is treated as untrusted input.
+- AI-generated diagnoses and corrected code are suggestions and should be reviewed and tested before production use.
+- The current conversation memory is in-process and is not durable storage.
+- The application does not claim to execute submitted code as part of its diagnosis.
 
 ## License
 
-Add a license before distributing the project publicly.
+No license has been added yet. If you intend to allow others to reuse, modify, or distribute this project, choose and add an appropriate open-source license.

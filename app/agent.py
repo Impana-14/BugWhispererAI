@@ -59,10 +59,10 @@ def analyze_bug(request: BugAnalysisRequest) -> BugAnalysisResponse:
         f"Code:\n```text\n{request.code}\n```\n\n"
         f"Error message:\n{request.error_message}"
     )
-
+   
     chat_history = [
         types.Content(
-            role=message["role"],
+            role="model" if message["role"] == "assistant" else "user",
             parts=[types.Part.from_text(text=message["content"])],
         )
         for message in history[-20:]
